@@ -1,6 +1,8 @@
-# JA3/JA4 Enabled Nginx Proxy Manager Image
+# JA3 Enabled Nginx Proxy Manager Image
 
 This directory contains the Dockerfile for building an NPM image with TLS fingerprinting support using the [phuslu/nginx-ssl-fingerprint](https://github.com/phuslu/nginx-ssl-fingerprint) module.
+
+> **Note**: This image currently provides JA3 fingerprinting. JA4 support may be added in future versions of the nginx-ssl-fingerprint module.
 
 ## Features
 
@@ -19,7 +21,7 @@ This custom image provides the following nginx variables for TLS fingerprinting:
 
 ```bash
 cd docker/ja4
-docker build -t npm-ja4:latest .
+docker build -t npm-ja3:latest .
 ```
 
 The build process:
