@@ -75,6 +75,8 @@ Full JSON format with all proxy-related fields:
 }
 ```
 
+> **Note:** The `upstream_response_time` and `upstream_status` fields are strings because they may contain multiple comma-separated values if a request is passed to more than one upstream server.
+
 ### `standard_json` Format
 
 Simplified JSON format for redirections and dead hosts:
@@ -91,6 +93,7 @@ Simplified JSON format for redirections and dead hosts:
   "http_referer": "-",
   "http_user_agent": "Mozilla/5.0...",
   "http_host": "example.com",
+  "server_name": "example.com",
   "scheme": "https",
   "ssl_protocol": "TLSv1.3",
   "ssl_cipher": "TLS_AES_256_GCM_SHA384",
