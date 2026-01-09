@@ -104,6 +104,25 @@ const getRenderEngine = () => {
 		return "";
 	});
 
+	/**
+	 * sanitizeForFilename converts a domain name to a filesystem-safe string.
+	 * - Handles wildcards: "*.example.com" -> "wildcard_example_com"
+	 * - Replaces special chars with underscores
+	 * - Limits length to 63 chars for filesystem safety
+	 */
+	renderEngine.registerFilter("sanitizeForFilename", (domain) => {
+		if (!domain || typeof domain !== "string") {
+			return "unknown";
+		}
+		return domain
+			.replace(/^\*\./, "wildcard_")
+			.replace(/[^a-zA-Z0-9-]/g, "_")
+			.replace(/_+/g, "_")
+			.replace(/^_|_$/g, "")
+			.toLowerCase()
+			.substring(0, 63);
+	});
+
 	return renderEngine;
 };
 
