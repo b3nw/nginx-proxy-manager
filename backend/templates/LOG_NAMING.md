@@ -52,9 +52,10 @@ Domain names are sanitized to be filesystem-safe:
 1. Wildcard prefix (`*.`) → `wildcard_`
 2. All special characters (except `-`) → `_`
 3. Multiple underscores collapsed → single `_`
-4. Leading/trailing underscores removed
-5. Converted to lowercase
-6. Limited to 63 characters (filesystem safety)
+4. Converted to lowercase
+5. Truncated to 63 characters (filesystem safety)
+6. Leading/trailing underscores removed
+7. Empty result → `unknown` fallback
 
 ## Multiple Domains
 
@@ -150,20 +151,21 @@ renderEngine.registerFilter("sanitizeForFilename", (domain) => {
     if (!domain || typeof domain !== "string") {
         return "unknown";
     }
-    return domain
+    const result = domain
         .replace(/^\*\./, "wildcard_")
         .replace(/[^a-zA-Z0-9-]/g, "_")
         .replace(/_+/g, "_")
-        .replace(/^_|_$/g, "")
         .toLowerCase()
-        .substring(0, 63);
+        .substring(0, 63)
+        .replace(/^_|_$/g, "");
+    return result || "unknown";
 });
 ```
 
 ### Template Usage
 
 ```liquid
-{% assign primary_domain = domain_names | first | sanitizeForFilename %}
+{% assign primary_domain = domain_names | sort | first | sanitizeForFilename %}
 access_log /data/logs/proxy-host-{{ id }}-{{ primary_domain }}_access.log proxy;
 error_log /data/logs/proxy-host-{{ id }}-{{ primary_domain }}_error.log warn;
 ```
