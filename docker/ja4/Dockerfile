@@ -1,7 +1,10 @@
-# JA3/JA4-enabled Nginx Proxy Manager base image
+# JA3-enabled Nginx Proxy Manager base image
 # This image includes SSL fingerprinting support via phuslu/nginx-ssl-fingerprint
 #
-# Build: docker build -t npm-ja4:latest .
+# Note: This provides JA3 fingerprinting. JA4 support may be added in future
+# versions of the nginx-ssl-fingerprint module.
+#
+# Build: docker build -t npm-ja3:latest .
 # Usage: Use this as a drop-in replacement for the standard NPM image
 #
 # Provides nginx variables:
@@ -39,12 +42,14 @@ RUN git clone --depth 1 https://github.com/phuslu/nginx-ssl-fingerprint.git
 # Download and patch OpenSSL
 RUN curl -fsSL "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" -o openssl.tar.gz \
     && tar -xzf openssl.tar.gz \
+    && rm openssl.tar.gz \
     && cd openssl-${OPENSSL_VERSION} \
     && patch -p1 < ../nginx-ssl-fingerprint/patches/openssl.openssl-3.3.patch
 
 # Download and patch Nginx
-RUN curl -fsSL "http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -o nginx.tar.gz \
+RUN curl -fsSL "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -o nginx.tar.gz \
     && tar -xzf nginx.tar.gz \
+    && rm nginx.tar.gz \
     && cd nginx-${NGINX_VERSION} \
     && patch -p1 < ../nginx-ssl-fingerprint/patches/nginx.1.27.patch
 
@@ -63,7 +68,7 @@ RUN cd nginx-${NGINX_VERSION} \
     && ./configure \
         --prefix=/etc/nginx \
         --sbin-path=/usr/sbin/nginx \
-        --modules-path=/usr/lib64/nginx/modules \
+        --modules-path=/usr/lib/nginx/modules \
         --conf-path=/etc/nginx/nginx.conf \
         --error-log-path=/var/log/nginx/error.log \
         --http-log-path=/var/log/nginx/access.log \
@@ -97,17 +102,17 @@ RUN cd nginx-${NGINX_VERSION} \
 FROM nginxproxymanager/nginx-full:certbot-node
 
 LABEL maintainer="Nginx Proxy Manager Community" \
-      description="NPM with JA3/JA4 TLS fingerprinting support" \
+      description="NPM with JA3 TLS fingerprinting support" \
       org.opencontainers.image.source="https://github.com/NginxProxyManager/nginx-proxy-manager"
 
 # Copy the patched nginx binary (replaces the existing one)
 COPY --from=builder /build/nginx-${NGINX_VERSION}/objs/nginx /usr/sbin/nginx
 
-# Copy OpenSSL libraries
-COPY --from=builder /opt/openssl/lib64 /opt/openssl/lib64
+# Copy OpenSSL libraries (use lib for cross-platform compatibility)
+COPY --from=builder /opt/openssl/lib /opt/openssl/lib
 
 # Update library path for the patched OpenSSL
-ENV LD_LIBRARY_PATH=/opt/openssl/lib64:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/opt/openssl/lib:$LD_LIBRARY_PATH
 
 # Create nginx cache directories
 RUN mkdir -p /var/cache/nginx/client_temp \
