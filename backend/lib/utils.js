@@ -111,13 +111,14 @@ const getRenderEngine = () => {
 		if (!domain || typeof domain !== "string") {
 			return "unknown";
 		}
-		return domain
+		const result = domain
 			.replace(/^\*\./, "wildcard_")
 			.replace(/[^a-zA-Z0-9-]/g, "_")
 			.replace(/_+/g, "_")
-			.replace(/^_|_$/g, "")
 			.toLowerCase()
-			.substring(0, 63);
+			.substring(0, 63)
+			.replace(/^_|_$/g, "");
+		return result || "unknown";
 	});
 
 	return renderEngine;
