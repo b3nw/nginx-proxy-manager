@@ -3,6 +3,7 @@ import express from "express";
 import moment from "moment";
 import jwtdecode from "../../lib/express/jwt-decode.js";
 import errs from "../../lib/error.js";
+import utils from "../../lib/utils.js";
 import validator from "../../lib/validator/index.js";
 import { debug, express as logger } from "../../logger.js";
 import internalProxyHost from "../../internal/proxy-host.js";
@@ -183,18 +184,11 @@ router
 
 			const hostId = Number.parseInt(data.host_id, 10);
 			// Call internalProxyHost helper to handle permissions and retrieve host
-			await internalProxyHost.getHostForLogs(res.locals.access, hostId);
+			const host = await internalProxyHost.getHostForLogs(res.locals.access, hostId);
 
-			const filePath = `/data/logs/proxy-host-${hostId}_${data.type}.log`;
-
-			// Check if file exists, if not throw 404
-			try {
-				await fs.stat(filePath);
-			} catch (err) {
-				if (err.code === "ENOENT") {
-					throw new errs.ItemNotFoundError(`Log file not found for host ${hostId} (${data.type})`);
-				}
-				throw err;
+			const filePath = await utils.resolveProxyHostLogPath(hostId, data.type, host);
+			if (!filePath) {
+				throw new errs.ItemNotFoundError(`Log file not found for host ${hostId} (${data.type})`);
 			}
 
 			const matchedLines = await readLastLines({
@@ -251,31 +245,27 @@ router
 
 			const hostId = Number.parseInt(data.host_id, 10);
 			// Call internalProxyHost helper to handle permissions and retrieve host
-			await internalProxyHost.getHostForLogs(res.locals.access, hostId);
+			const host = await internalProxyHost.getHostForLogs(res.locals.access, hostId);
 
-			const accessLogPath = `/data/logs/proxy-host-${hostId}_access.log`;
-			const errorLogPath = `/data/logs/proxy-host-${hostId}_error.log`;
-
-			// Check access log exists, throw 404 if missing
-			let access_log_size_bytes = 0;
-			try {
-				const stat = await fs.stat(accessLogPath);
-				access_log_size_bytes = stat.size;
-			} catch (err) {
-				if (err.code === "ENOENT") {
-					throw new errs.ItemNotFoundError(`Access log file not found for host ${hostId}`);
-				}
-				throw err;
+			const accessLogPath = await utils.resolveProxyHostLogPath(hostId, "access", host);
+			if (!accessLogPath) {
+				throw new errs.ItemNotFoundError(`Access log file not found for host ${hostId}`);
 			}
+
+			const accessStat = await fs.stat(accessLogPath);
+			const access_log_size_bytes = accessStat.size;
 
 			// Get error log size, if missing default to 0
 			let error_log_size_bytes = 0;
-			try {
-				const stat = await fs.stat(errorLogPath);
-				error_log_size_bytes = stat.size;
-			} catch (err) {
-				if (err.code !== "ENOENT") {
-					throw err;
+			const errorLogPath = await utils.resolveProxyHostLogPath(hostId, "error", host);
+			if (errorLogPath) {
+				try {
+					const stat = await fs.stat(errorLogPath);
+					error_log_size_bytes = stat.size;
+				} catch (err) {
+					if (err.code !== "ENOENT") {
+						throw err;
+					}
 				}
 			}
 
